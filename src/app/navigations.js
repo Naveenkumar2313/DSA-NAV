@@ -35,6 +35,14 @@ const navigations = [
       { name: "Queue Operations", path: "/components/Queue/Operations" },
       { name: "Circular Queue Operations", path: "/components/Queue/Circular-Queue-Operations" }
     ]
+  },
+  {
+    name: "Tries",
+    badge: { color: "secondary" },
+    children: [
+      { name: "Trie Operations", path: "/components/Tries/Operations" },
+      { name: "Prefix Search", path: "/components/Tries/Prefix-Search" }
+    ]
   }
 ];
 

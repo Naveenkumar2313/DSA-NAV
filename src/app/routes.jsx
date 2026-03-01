@@ -20,6 +20,7 @@ import INPO_template from "./components/DSA/Stacks/Infix-Postfix/INPO_template";
 import VP_template from "./components/DSA/Stacks/Valid-Parenthesis/VP_template";
 import QOP_template from "./components/DSA/Queues/Queue-operations/QOP_template";
 import CQOP_template from "./components/DSA/Queues/Circular-Queue-Operations/CQOP_template";
+import Tries_template from "./components/DSA/Tries/Trie-operations/Trie_template";
 import sessionRoutes from "./views/sessions/session-routes";
 
 const routes = [
@@ -48,7 +49,8 @@ const routes = [
       { path: "/components/Stacks/VP", element: <VP_template /> },
       { path: "/components/Linked-List/Merge", element: <Demo /> },
       { path: "/components/Queue/Operations", element: <QOP_template /> },
-      { path: "/components/Queue/Circular-Queue-Operations", element: <CQOP_template /> }
+      { path: "/components/Queue/Circular-Queue-Operations", element: <CQOP_template /> },
+      { path: "/components/Tries/Operations", element: <Tries_template /> }
     ]
   },
 
