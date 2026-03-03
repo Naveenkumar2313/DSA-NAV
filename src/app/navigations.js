@@ -44,6 +44,14 @@ const navigations = [
       { name: "Longest Common Prefix", path: "/components/Tries/Longest_common_prefix" },
       { name: "Words with given prefix", path: "/components/Tries/Words_with_given_prefix" }
     ]
+  },
+  {
+    name: "Graphs",
+    badge: { color: "secondary" },
+    children: [
+      { name: "DFS", path: "/components/graphs/DFS" },
+      { name: "BFS", path: "/components/graphs/BFS" }
+    ]
   }
 ];
 

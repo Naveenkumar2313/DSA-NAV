@@ -24,6 +24,8 @@ import Tries_template from "./components/DSA/Tries/Trie-operations/Trie_template
 import sessionRoutes from "./views/sessions/session-routes";
 import LCP_template from "./components/DSA/Tries/Longest_common_prefix/LCP_template";
 import NWP_template from "./components/DSA/Tries/Words_with_given_prefix/NWP_template";
+import Graph_DFS_template from "./components/DSA/Graphs/DFS/DFS_template";
+import GraphBFS_template from "./components/DSA/Graphs/BFS/GraphBFS_template";
 
 const routes = [
   { path: "/", element: <Navigate to="dashboard/default" /> },
@@ -54,7 +56,9 @@ const routes = [
       { path: "/components/Queue/Circular-Queue-Operations", element: <CQOP_template /> },
       { path: "/components/Tries/Operations", element: <Tries_template /> },
       { path: "/components/Tries/Longest_common_prefix", element: <LCP_template /> },
-      { path: "/components/Tries/Words_with_given_prefix", element: <NWP_template /> }
+      { path: "/components/Tries/Words_with_given_prefix", element: <NWP_template /> },
+      { path: "/components/graphs/DFS", element: <Graph_DFS_template /> },
+      { path: "/components/graphs/BFS", element: <GraphBFS_template /> }
     ]
   },
 
