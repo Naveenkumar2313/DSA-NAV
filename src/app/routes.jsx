@@ -26,6 +26,8 @@ import LCP_template from "./components/DSA/Tries/Longest_common_prefix/LCP_templ
 import NWP_template from "./components/DSA/Tries/Words_with_given_prefix/NWP_template";
 import Graph_DFS_template from "./components/DSA/Graphs/DFS/DFS_template";
 import GraphBFS_template from "./components/DSA/Graphs/BFS/GraphBFS_template";
+import Dijkstra_template from "./components/DSA/Graphs/Dijkstra/Dijkstra_template";
+import Kruskal_template from "./components/DSA/Graphs/Kruskal/Kruskal_template";
 
 const routes = [
   { path: "/", element: <Navigate to="dashboard/default" /> },
@@ -58,7 +60,9 @@ const routes = [
       { path: "/components/Tries/Longest_common_prefix", element: <LCP_template /> },
       { path: "/components/Tries/Words_with_given_prefix", element: <NWP_template /> },
       { path: "/components/graphs/DFS", element: <Graph_DFS_template /> },
-      { path: "/components/graphs/BFS", element: <GraphBFS_template /> }
+      { path: "/components/graphs/BFS", element: <GraphBFS_template /> },
+      { path: "/components/graphs/Dijkstra", element: <Dijkstra_template /> },
+      { path: "/components/graphs/Kruskal", element: <Kruskal_template /> }
     ]
   },
 

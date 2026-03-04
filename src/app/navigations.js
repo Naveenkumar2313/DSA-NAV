@@ -50,7 +50,9 @@ const navigations = [
     badge: { color: "secondary" },
     children: [
       { name: "DFS", path: "/components/graphs/DFS" },
-      { name: "BFS", path: "/components/graphs/BFS" }
+      { name: "BFS", path: "/components/graphs/BFS" },
+      { name: "Dijkstra", path: "/components/graphs/Dijkstra" },
+      { name: "Kruskal", path: "/components/graphs/Kruskal" }
     ]
   }
 ];
