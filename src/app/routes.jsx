@@ -28,6 +28,7 @@ import Graph_DFS_template from "./components/DSA/Graphs/DFS/DFS_template";
 import GraphBFS_template from "./components/DSA/Graphs/BFS/GraphBFS_template";
 import Dijkstra_template from "./components/DSA/Graphs/Dijkstra/Dijkstra_template";
 import Kruskal_template from "./components/DSA/Graphs/Kruskal/Kruskal_template";
+import DBT_template from "./components/DSA/Trees/Diameter_of_a_Binary_Tree/DBT_template";
 
 const routes = [
   { path: "/", element: <Navigate to="dashboard/default" /> },
@@ -50,10 +51,9 @@ const routes = [
       { path: "/components/trees/BFS", element: <BFS_template /> },
       { path: "/components/trees/DFS", element: <DFS_template /> },
       { path: "/components/trees/DLS", element: <DLS_template /> },
-      { path: "/components/Stacks/Operations", element: <ST_template /> },
+      { path: "components/Stacks/Operations", element: <ST_template /> },
       { path: "/components/Stacks/INPO", element: <INPO_template /> },
       { path: "/components/Stacks/VP", element: <VP_template /> },
-      { path: "/components/Linked-List/Merge", element: <Demo /> },
       { path: "/components/Queue/Operations", element: <QOP_template /> },
       { path: "/components/Queue/Circular-Queue-Operations", element: <CQOP_template /> },
       { path: "/components/Tries/Operations", element: <Tries_template /> },
@@ -62,7 +62,8 @@ const routes = [
       { path: "/components/graphs/DFS", element: <Graph_DFS_template /> },
       { path: "/components/graphs/BFS", element: <GraphBFS_template /> },
       { path: "/components/graphs/Dijkstra", element: <Dijkstra_template /> },
-      { path: "/components/graphs/Kruskal", element: <Kruskal_template /> }
+      { path: "/components/graphs/Kruskal", element: <Kruskal_template /> },
+      { path: "/components/trees/Diameter-tree", element: <DBT_template /> }
     ]
   },
 

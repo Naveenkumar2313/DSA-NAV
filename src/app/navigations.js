@@ -16,7 +16,8 @@ const navigations = [
     children: [
       { name: "BFS", path: "/components/trees/BFS" },
       { name: "DFS", path: "/components/trees/DFS" },
-      { name: "DLS", path: "/components/trees/DLS" }
+      { name: "DLS", path: "/components/trees/DLS" },
+      { name: "Diameter Tree", path: "/components/trees/Diameter-tree" }
     ]
   },
   {
@@ -54,6 +55,11 @@ const navigations = [
       { name: "Dijkstra", path: "/components/graphs/Dijkstra" },
       { name: "Kruskal", path: "/components/graphs/Kruskal" }
     ]
+  },
+  {
+    name: "Linked List",
+    badge: { color: "secondary" },
+    children: [{ name: "Reverse a linked list", path: "/components/linked-list/reverse" }]
   }
 ];
 
