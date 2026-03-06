@@ -7,7 +7,8 @@ const navigations = [
       { name: "Binary Search", path: "/components/arrays/Bsearch" },
       { name: "Linear Search", path: "/components/arrays/Lsearch" },
       { name: "Bubble Sort", path: "/components/arrays/BBS" },
-      { name: "Selection Sort", path: "/components/arrays/SLS" }
+      { name: "Selection Sort", path: "/components/arrays/SLS" },
+      { name: "Two Pointer (Palindrome)", path: "/components/arrays/TwoPointer" }
     ]
   },
   {
@@ -17,7 +18,9 @@ const navigations = [
       { name: "BFS", path: "/components/trees/BFS" },
       { name: "DFS", path: "/components/trees/DFS" },
       { name: "DLS", path: "/components/trees/DLS" },
-      { name: "Diameter Tree", path: "/components/trees/Diameter-tree" }
+      { name: "Diameter of Binary Tree", path: "/components/trees/Diameter" },
+      { name: "Path Sum", path: "/components/trees/PathSum" },
+      { name: "Balanced Binary Tree", path: "/components/trees/BalancedBinaryTree" }
     ]
   },
   {
@@ -43,7 +46,8 @@ const navigations = [
     children: [
       { name: "Trie Operations", path: "/components/Tries/Operations" },
       { name: "Longest Common Prefix", path: "/components/Tries/Longest_common_prefix" },
-      { name: "Words with given prefix", path: "/components/Tries/Words_with_given_prefix" }
+      { name: "Words with given prefix", path: "/components/Tries/Words_with_given_prefix" },
+      { name: "Count Unique Substrings", path: "/components/Tries/Count_unique_substrings" }
     ]
   },
   {
