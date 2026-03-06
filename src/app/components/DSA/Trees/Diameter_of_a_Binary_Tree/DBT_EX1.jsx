@@ -382,7 +382,7 @@ const DBT_EX1 = () => {
         p.textSize(14);
         p.noStroke();
         p.fill(colorsRef.current.text.primary);
-        p.text(`Diameter: ${currentDiameter}`, p.width - 15, 15);
+        p.text(`Diameter: ${currentDiameter}`, p.width - 40, 15);
       };
 
       const executeStep = () => {

@@ -1,7 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import p5 from "p5";
-import { Box, Grid, Paper, Stack, Typography, Tooltip, IconButton } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box, Grid, Paper, Stack, Typography, Tooltip, IconButton, useTheme } from "@mui/material";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -23,7 +22,8 @@ const getExampleColors = (theme) => {
     warning: isDark ? "#ffb74d" : "#FFD700",
     info: isDark ? "#4a5568" : "#E0E0E0",
     error: isDark ? "#e57373" : "#e57373",
-    diameter: isDark ? "#ff6b6b" : "#e74c3c",
+    balanced: isDark ? "#4ade80" : "#27ae60",
+    unbalanced: isDark ? "#ff6b6b" : "#e74c3c",
     heightColor: isDark ? "#a78bfa" : "#8e44ad",
     background: {
       default: isDark ? "#121212" : "#f0f2f5",
@@ -86,7 +86,7 @@ const getStyles = (colors, isDark) => ({
   }
 });
 
-const DBT_EX2 = () => {
+const BBT_EX1 = () => {
   const theme = useTheme();
   const colors = getExampleColors(theme);
   const isDark = theme?.palette?.mode === "dark" || theme?.palette?.type === "dark";
@@ -97,11 +97,12 @@ const DBT_EX2 = () => {
   const [stepList, setStepList] = useState([]);
   const [statusText, setStatusText] = useState("Status: Ready");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [diameterValue, setDiameterValue] = useState(0);
+  const [resultText, setResultText] = useState("Result: —");
 
   const audioRefs = useRef({});
   const stepListRef = useRef(null);
 
+  // Update colorsRef when theme changes
   useEffect(() => {
     colorsRef.current = colors;
   }, [colors]);
@@ -119,11 +120,11 @@ const DBT_EX2 = () => {
     let computeComplete = false;
     let history = [];
     let pInstance = null;
-    let diameterEdges = [];
+    let isBalancedResult = null;
 
+    // Pre-computed DFS traversal steps for the algorithm
     let dfsSteps = [];
     let currentStepIndex = -1;
-    let currentDiameter = 0;
 
     function layoutTree(root, x, y, xSpacing, ySpacing) {
       root.targetX = x;
@@ -148,7 +149,7 @@ const DBT_EX2 = () => {
         this.visited = false;
         this.processed = false;
         this.isCurrent = false;
-        this.isOnDiameterPath = false;
+        this.isBalancedNode = null; // null = not checked, true = balanced, false = unbalanced
         this.heightValue = null;
         this.scale = 1;
         this.targetScale = 1;
@@ -180,9 +181,11 @@ const DBT_EX2 = () => {
       }
     };
 
+    // Pre-compute all DFS steps for the balanced binary tree check algorithm
     function precomputeSteps(node) {
       if (!node) return 0;
 
+      // Step: visiting this node
       dfsSteps.push({
         type: "visit",
         nodeValue: node.value,
@@ -197,8 +200,21 @@ const DBT_EX2 = () => {
           nodeValue: node.value,
           childValue: node.left.value,
           height: leftHeight,
-          message: `Back to '${node.value}': left height = ${leftHeight}`
+          message: `Back to '${node.value}': left height = ${leftHeight === -1 ? "-1 (unbalanced)" : leftHeight}`
         });
+      }
+
+      if (leftHeight === -1) {
+        dfsSteps.push({
+          type: "compute",
+          nodeValue: node.value,
+          leftHeight,
+          rightHeight: "skipped",
+          nodeHeight: -1,
+          isBalanced: false,
+          message: `Node '${node.value}': Left subtree is unbalanced → propagate -1`
+        });
+        return -1;
       }
 
       const rightHeight = precomputeSteps(node.right);
@@ -209,21 +225,38 @@ const DBT_EX2 = () => {
           nodeValue: node.value,
           childValue: node.right.value,
           height: rightHeight,
-          message: `Back to '${node.value}': right height = ${rightHeight}`
+          message: `Back to '${node.value}': right height = ${rightHeight === -1 ? "-1 (unbalanced)" : rightHeight}`
         });
       }
 
-      const localDiameter = leftHeight + rightHeight;
-      const nodeHeight = 1 + Math.max(leftHeight, rightHeight);
+      if (rightHeight === -1) {
+        dfsSteps.push({
+          type: "compute",
+          nodeValue: node.value,
+          leftHeight,
+          rightHeight,
+          nodeHeight: -1,
+          isBalanced: false,
+          message: `Node '${node.value}': Right subtree is unbalanced → propagate -1`
+        });
+        return -1;
+      }
+
+      const diff = Math.abs(leftHeight - rightHeight);
+      const balanced = diff <= 1;
+      const nodeHeight = balanced ? 1 + Math.max(leftHeight, rightHeight) : -1;
 
       dfsSteps.push({
         type: "compute",
         nodeValue: node.value,
         leftHeight,
         rightHeight,
-        localDiameter,
+        diff,
         nodeHeight,
-        message: `Node '${node.value}': leftH=${leftHeight}, rightH=${rightHeight}, diameter through node=${localDiameter}, height=${nodeHeight}`
+        isBalanced: balanced,
+        message: balanced
+          ? `Node '${node.value}': leftH=${leftHeight}, rightH=${rightHeight}, |diff|=${diff} ≤ 1 → Balanced ✓, height=${nodeHeight}`
+          : `Node '${node.value}': leftH=${leftHeight}, rightH=${rightHeight}, |diff|=${diff} > 1 → UNBALANCED ✗`
       });
 
       return nodeHeight;
@@ -233,49 +266,38 @@ const DBT_EX2 = () => {
       pInstance = p;
 
       const createTree = (p) => {
-        // Example 2: A larger, more complex tree where diameter doesn't pass through root
-        //          A
-        //         / \
-        //        B   C
+        // Example 1: A balanced binary tree
+        //        A
         //       / \
-        //      D   E
-        //     /   / \
-        //    H   F   G
-        //   /       \
-        //  I         J
+        //      B   C
+        //     / \   \
+        //    D   E   F
         const A = new Node("A", p);
         const B = new Node("B", p);
         const C = new Node("C", p);
         const D = new Node("D", p);
         const E = new Node("E", p);
         const F = new Node("F", p);
-        const G = new Node("G", p);
-        const H = new Node("H", p);
-        const I = new Node("I", p);
-        const J = new Node("J", p);
 
         A.left = B;
         A.right = C;
         B.left = D;
         B.right = E;
-        D.left = H;
-        E.left = F;
-        E.right = G;
-        H.left = I;
-        G.right = J;
+        C.right = F;
 
-        nodes = [A, B, C, D, E, F, G, H, I, J];
+        nodes = [A, B, C, D, E, F];
         root = A;
 
         const w = p.width;
         const h = p.height;
-        layoutTree(A, w / 2, h * 0.10, w * 0.22, h * 0.20);
+        layoutTree(A, w / 2, h * 0.15, w * 0.22, h * 0.25);
 
         nodes.forEach((node) => {
           node.x = node.targetX;
           node.y = node.targetY;
         });
 
+        // Pre-compute DFS steps
         dfsSteps = [];
         precomputeSteps(root);
       };
@@ -291,12 +313,11 @@ const DBT_EX2 = () => {
       };
 
       p.draw = () => {
-        const currentColors = colorsRef.current;
-        p.background(currentColors.background.canvas);
+        p.background(colorsRef.current.background.canvas);
         updateNodeStates(p);
         drawEdges(p);
         drawNodes(p);
-        drawDiameterInfo(p);
+        drawResultInfo(p);
 
         if (running && !paused && !computeComplete && p.frameCount % 60 === 0) {
           executeStep();
@@ -305,9 +326,12 @@ const DBT_EX2 = () => {
 
       const updateNodeStates = (p) => {
         for (let node of nodes) {
-          if (node.isOnDiameterPath) {
-            node.targetColor = p.color(colorsRef.current.diameter);
+          if (node.isBalancedNode === false) {
+            node.targetColor = p.color(colorsRef.current.unbalanced);
             node.targetScale = 1.15;
+          } else if (node.isBalancedNode === true && node.processed) {
+            node.targetColor = p.color(colorsRef.current.balanced);
+            node.targetScale = 1;
           } else if (node.isCurrent) {
             node.targetColor = p.color(colorsRef.current.warning);
             node.targetScale = 1.2 + p.sin(p.frameCount * 0.1) * 0.1;
@@ -332,33 +356,10 @@ const DBT_EX2 = () => {
           if (node.left) p.line(node.x, node.y, node.left.x, node.left.y);
           if (node.right) p.line(node.x, node.y, node.right.x, node.right.y);
         }
-
-        for (const edge of diameterEdges) {
-          p.push();
-          p.stroke(p.color(colorsRef.current.diameter));
-          p.strokeWeight(4);
-          p.drawingContext.setLineDash([8, 6]);
-          p.line(edge.from.x, edge.from.y, edge.to.x, edge.to.y);
-          p.drawingContext.setLineDash([]);
-
-          const fromVec = p.createVector(edge.from.x, edge.from.y);
-          const toVec = p.createVector(edge.to.x, edge.to.y);
-          const midPoint = p5.Vector.lerp(fromVec, toVec, 0.5);
-          const angle = p.atan2(toVec.y - fromVec.y, toVec.x - fromVec.x);
-
-          let arrowSize = 10;
-          p.translate(midPoint.x, midPoint.y);
-          p.rotate(angle);
-          p.fill(p.color(colorsRef.current.diameter));
-          p.noStroke();
-          p.triangle(0, 0, -arrowSize * 1.5, -arrowSize * 0.7, -arrowSize * 1.5, arrowSize * 0.7);
-          p.pop();
-        }
       };
 
       const drawNodes = (p) => {
         p.textAlign(p.CENTER, p.CENTER);
-        p.textFont("Inter, sans-serif");
 
         for (let node of nodes) {
           p.stroke(colorsRef.current.primary);
@@ -371,6 +372,7 @@ const DBT_EX2 = () => {
           p.textSize(16);
           p.text(node.value, node.x, node.y);
 
+          // Draw height value below the node
           if (node.heightValue !== null) {
             p.textSize(11);
             p.fill(colorsRef.current.heightColor);
@@ -379,43 +381,57 @@ const DBT_EX2 = () => {
         }
       };
 
-      const drawDiameterInfo = (p) => {
+      const drawResultInfo = (p) => {
+        // Draw result in top-right corner
         p.textAlign(p.RIGHT, p.TOP);
         p.textSize(14);
         p.noStroke();
-        p.fill(colorsRef.current.text.primary);
-        p.text(`Diameter: ${currentDiameter}`, p.width - 40, 15);
+        if (isBalancedResult !== null) {
+          p.fill(isBalancedResult ? colorsRef.current.balanced : colorsRef.current.unbalanced);
+          p.text(isBalancedResult ? "✓ Balanced" : "✗ Unbalanced", p.width - 40, 15);
+        }
       };
 
       const executeStep = () => {
         if (currentStepIndex >= dfsSteps.length - 1) {
+          // All steps done
           computeComplete = true;
           running = false;
           setIsPlaying(false);
           nodes.forEach((n) => (n.isCurrent = false));
-          findAndHighlightDiameterPath();
-          playSound("success");
-          setStatusText(`Complete! Diameter = ${currentDiameter}`);
-          setStepList((prev) => [...prev, `Step ${stepNumber++}: Algorithm complete. Diameter = ${currentDiameter}`]);
-          setDiameterValue(currentDiameter);
+
+          // Determine final result
+          const lastCompute = dfsSteps.filter(s => s.type === "compute").pop();
+          isBalancedResult = lastCompute ? lastCompute.isBalanced : true;
+
+          if (isBalancedResult) {
+            playSound("success");
+            setStatusText("Complete! Tree is BALANCED ✓");
+            setResultText("Result: ✓ Balanced");
+          } else {
+            playSound("fail");
+            setStatusText("Complete! Tree is UNBALANCED ✗");
+            setResultText("Result: ✗ Unbalanced");
+          }
+          setStepList((prev) => [...prev, `Step ${stepNumber++}: Algorithm complete. Tree is ${isBalancedResult ? "BALANCED ✓" : "UNBALANCED ✗"}`]);
           return;
         }
 
+        // Save history
         history.push({
           nodes: nodes.map((n) => ({
             value: n.value,
             visited: n.visited,
             processed: n.processed,
             isCurrent: n.isCurrent,
-            isOnDiameterPath: n.isOnDiameterPath,
+            isBalancedNode: n.isBalancedNode,
             heightValue: n.heightValue,
             color: { levels: n.color.levels },
             targetColor: { levels: n.targetColor.levels }
           })),
           stepIndex: currentStepIndex,
           stepNumber,
-          currentDiameter,
-          diameterEdges: [...diameterEdges]
+          isBalancedResult
         });
 
         currentStepIndex++;
@@ -439,62 +455,10 @@ const DBT_EX2 = () => {
           node.isCurrent = true;
           node.processed = true;
           node.heightValue = step.nodeHeight;
-          if (step.localDiameter > currentDiameter) {
-            currentDiameter = step.localDiameter;
-            setDiameterValue(currentDiameter);
-          }
+          node.isBalancedNode = step.isBalanced;
           setStatusText(step.message);
           setStepList((prev) => [...prev, `Step ${stepNumber++}: ${step.message}`]);
           playSound("step");
-        }
-      };
-
-      const findAndHighlightDiameterPath = () => {
-        let maxDiam = 0;
-        let maxNode = null;
-
-        function getHeight(node) {
-          if (!node) return 0;
-          return node.heightValue || 0;
-        }
-
-        for (let node of nodes) {
-          const lh = node.left ? getHeight(node.left) : 0;
-          const rh = node.right ? getHeight(node.right) : 0;
-          if (lh + rh >= maxDiam) {
-            maxDiam = lh + rh;
-            maxNode = node;
-          }
-        }
-
-        if (maxNode) {
-          maxNode.isOnDiameterPath = true;
-
-          const traceDown = (n) => {
-            if (!n || n.heightValue <= 1) return;
-            const lh = n.left && n.left.heightValue !== null ? n.left.heightValue : 0;
-            const rh = n.right && n.right.heightValue !== null ? n.right.heightValue : 0;
-            if (lh >= rh && n.left) {
-              diameterEdges.push({ from: n, to: n.left });
-              n.left.isOnDiameterPath = true;
-              traceDown(n.left);
-            } else if (n.right) {
-              diameterEdges.push({ from: n, to: n.right });
-              n.right.isOnDiameterPath = true;
-              traceDown(n.right);
-            }
-          };
-
-          if (maxNode.left) {
-            diameterEdges.push({ from: maxNode, to: maxNode.left });
-            maxNode.left.isOnDiameterPath = true;
-            traceDown(maxNode.left);
-          }
-          if (maxNode.right) {
-            diameterEdges.push({ from: maxNode, to: maxNode.right });
-            maxNode.right.isOnDiameterPath = true;
-            traceDown(maxNode.right);
-          }
         }
       };
 
@@ -502,12 +466,11 @@ const DBT_EX2 = () => {
         createTree(p);
         stepNumber = 1;
         history = [];
-        diameterEdges = [];
         currentStepIndex = -1;
-        currentDiameter = 0;
+        isBalancedResult = null;
         setStepList([]);
         setStatusText("Status: Ready");
-        setDiameterValue(0);
+        setResultText("Result: —");
         running = false;
         paused = true;
         computeComplete = false;
@@ -544,17 +507,16 @@ const DBT_EX2 = () => {
           node.visited = prev.nodes[i].visited;
           node.processed = prev.nodes[i].processed;
           node.isCurrent = prev.nodes[i].isCurrent;
-          node.isOnDiameterPath = prev.nodes[i].isOnDiameterPath;
+          node.isBalancedNode = prev.nodes[i].isBalancedNode;
           node.heightValue = prev.nodes[i].heightValue;
           node.color = p.color(prev.nodes[i].color.levels);
           node.targetColor = p.color(prev.nodes[i].targetColor.levels);
         });
         currentStepIndex = prev.stepIndex;
         stepNumber = prev.stepNumber;
-        currentDiameter = prev.currentDiameter;
-        diameterEdges = prev.diameterEdges;
+        isBalancedResult = prev.isBalancedResult;
         computeComplete = false;
-        setDiameterValue(currentDiameter);
+        setResultText("Result: —");
         setStepList((prevList) => prevList.slice(0, -1));
         const lastStatus = history.length > 0 ? "Stepping back..." : "Status: Ready";
         setStatusText(lastStatus);
@@ -580,10 +542,10 @@ const DBT_EX2 = () => {
     <Box sx={styles.container}>
       <Box sx={{ mb: 2, textAlign: "center" }}>
         <Typography variant="h5" gutterBottom sx={{ color: colors.text.primary, fontWeight: 700 }}>
-          Example 2: Diameter Not Through Root
+          Example 1: Balanced Binary Tree
         </Typography>
-        <Typography variant="h6" sx={{ color: colors.diameter, fontWeight: 600 }}>
-          Current Diameter: {diameterValue}
+        <Typography variant="h6" sx={{ color: resultText.includes("✓") ? colors.balanced : resultText.includes("✗") ? colors.unbalanced : colors.text.secondary, fontWeight: 600 }}>
+          {resultText}
         </Typography>
       </Box>
 
@@ -662,16 +624,17 @@ const DBT_EX2 = () => {
           sx={{
             p: 1.5,
             borderRadius: 2,
-            background: isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)",
-            border: `1px solid ${colors.border}`,
+            background: isDark ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.7)",
             flexWrap: "wrap",
-            justifyContent: "center"
+            justifyContent: "center",
+            border: `1px solid ${colors.border}`
           }}
         >
           <LegendItem color={colors.warning} text="Current" textColor={colors.text.primary} />
           <LegendItem color={colors.secondary} text="Visiting" textColor={colors.text.primary} />
           <LegendItem color={colors.success} text="Processed" textColor={colors.text.primary} />
-          <LegendItem color={colors.diameter} text="Diameter Path" textColor={colors.text.primary} />
+          <LegendItem color={colors.balanced} text="Balanced ✓" textColor={colors.text.primary} />
+          <LegendItem color={colors.unbalanced} text="Unbalanced ✗" textColor={colors.text.primary} />
           <LegendItem color={colors.info} text="Not Visited" textColor={colors.text.primary} />
         </Stack>
       </Box>
@@ -686,18 +649,18 @@ const DBT_EX2 = () => {
         </Grid>
         <Grid item xs={12} md={5} lg={4}>
           <Paper
-            sx={{
+            sx={(theme) => ({
               p: { xs: 1.5, md: 2 },
               width: "100%",
               display: "flex",
               flexDirection: "column",
-              gap: 2,
+              gap: theme.spacing(2),
               height: "100%",
               mx: "auto",
               bgcolor: colors.background.paper,
               backgroundImage: "none",
               border: `1px solid ${colors.border}`
-            }}
+            })}
             elevation={isDark ? 0 : 3}
           >
             <Box>
@@ -752,4 +715,4 @@ const LegendItem = ({ color, text, textColor }) => (
   </Stack>
 );
 
-export default DBT_EX2;
+export default BBT_EX1;

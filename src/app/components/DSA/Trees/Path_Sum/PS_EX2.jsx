@@ -23,8 +23,9 @@ const getExampleColors = (theme) => {
     warning: isDark ? "#ffb74d" : "#FFD700",
     info: isDark ? "#4a5568" : "#E0E0E0",
     error: isDark ? "#e57373" : "#e57373",
-    diameter: isDark ? "#ff6b6b" : "#e74c3c",
-    heightColor: isDark ? "#a78bfa" : "#8e44ad",
+    pathFound: isDark ? "#4ade80" : "#2ecc71",
+    pathNotFound: isDark ? "#f87171" : "#e74c3c",
+    currentPath: isDark ? "#a78bfa" : "#8e44ad",
     background: {
       default: isDark ? "#121212" : "#f0f2f5",
       paper: isDark ? "#000000" : "#ffffff",
@@ -86,7 +87,7 @@ const getStyles = (colors, isDark) => ({
   }
 });
 
-const DBT_EX2 = () => {
+const PS_EX2 = () => {
   const theme = useTheme();
   const colors = getExampleColors(theme);
   const isDark = theme?.palette?.mode === "dark" || theme?.palette?.type === "dark";
@@ -97,7 +98,7 @@ const DBT_EX2 = () => {
   const [stepList, setStepList] = useState([]);
   const [statusText, setStatusText] = useState("Status: Ready");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [diameterValue, setDiameterValue] = useState(0);
+  const [resultText, setResultText] = useState("");
 
   const audioRefs = useRef({});
   const stepListRef = useRef(null);
@@ -119,11 +120,13 @@ const DBT_EX2 = () => {
     let computeComplete = false;
     let history = [];
     let pInstance = null;
-    let diameterEdges = [];
+    let pathEdges = [];
 
     let dfsSteps = [];
     let currentStepIndex = -1;
-    let currentDiameter = 0;
+    let targetSum = 15;
+    let foundPath = false;
+    let successPathNodes = [];
 
     function layoutTree(root, x, y, xSpacing, ySpacing) {
       root.targetX = x;
@@ -148,8 +151,8 @@ const DBT_EX2 = () => {
         this.visited = false;
         this.processed = false;
         this.isCurrent = false;
-        this.isOnDiameterPath = false;
-        this.heightValue = null;
+        this.isOnPath = false;
+        this.runningSum = null;
         this.scale = 1;
         this.targetScale = 1;
         this.color = p.color(colorsRef.current.info);
@@ -180,96 +183,97 @@ const DBT_EX2 = () => {
       }
     };
 
-    function precomputeSteps(node) {
-      if (!node) return 0;
+    function precomputeSteps(node, currentSum, path) {
+      if (!node) return;
+
+      const newSum = currentSum + node.value;
 
       dfsSteps.push({
         type: "visit",
         nodeValue: node.value,
-        message: `Visiting node '${node.value}'`
+        runningSum: newSum,
+        path: [...path, node.value],
+        message: `Visiting node '${node.value}', running sum = ${newSum}`
       });
 
-      const leftHeight = precomputeSteps(node.left);
+      if (!node.left && !node.right) {
+        const isMatch = newSum === targetSum;
+        dfsSteps.push({
+          type: "leaf_check",
+          nodeValue: node.value,
+          runningSum: newSum,
+          isMatch,
+          path: [...path, node.value],
+          message: isMatch
+            ? `🎯 Leaf '${node.value}': sum = ${newSum} === ${targetSum}. PATH FOUND!`
+            : `❌ Leaf '${node.value}': sum = ${newSum} ≠ ${targetSum}. Backtrack.`
+        });
+        if (isMatch && !foundPath) {
+          foundPath = true;
+          successPathNodes = [...path, node.value];
+        }
+        return;
+      }
+
+      precomputeSteps(node.left, newSum, [...path, node.value]);
 
       if (node.left) {
         dfsSteps.push({
-          type: "return_left",
+          type: "backtrack",
           nodeValue: node.value,
-          childValue: node.left.value,
-          height: leftHeight,
-          message: `Back to '${node.value}': left height = ${leftHeight}`
+          runningSum: newSum,
+          message: `Back to '${node.value}' (sum = ${newSum}), try right subtree`
         });
       }
 
-      const rightHeight = precomputeSteps(node.right);
+      precomputeSteps(node.right, newSum, [...path, node.value]);
 
       if (node.right) {
         dfsSteps.push({
-          type: "return_right",
+          type: "backtrack",
           nodeValue: node.value,
-          childValue: node.right.value,
-          height: rightHeight,
-          message: `Back to '${node.value}': right height = ${rightHeight}`
+          runningSum: newSum,
+          message: `Back to '${node.value}' (sum = ${newSum}), done with subtrees`
         });
       }
-
-      const localDiameter = leftHeight + rightHeight;
-      const nodeHeight = 1 + Math.max(leftHeight, rightHeight);
-
-      dfsSteps.push({
-        type: "compute",
-        nodeValue: node.value,
-        leftHeight,
-        rightHeight,
-        localDiameter,
-        nodeHeight,
-        message: `Node '${node.value}': leftH=${leftHeight}, rightH=${rightHeight}, diameter through node=${localDiameter}, height=${nodeHeight}`
-      });
-
-      return nodeHeight;
     }
 
     const sketch = (p) => {
       pInstance = p;
 
       const createTree = (p) => {
-        // Example 2: A larger, more complex tree where diameter doesn't pass through root
-        //          A
-        //         / \
-        //        B   C
+        // Example 2: No valid path exists
+        //        1
         //       / \
-        //      D   E
-        //     /   / \
-        //    H   F   G
-        //   /       \
-        //  I         J
-        const A = new Node("A", p);
-        const B = new Node("B", p);
-        const C = new Node("C", p);
-        const D = new Node("D", p);
-        const E = new Node("E", p);
-        const F = new Node("F", p);
-        const G = new Node("G", p);
-        const H = new Node("H", p);
-        const I = new Node("I", p);
-        const J = new Node("J", p);
+        //      2   3
+        //     / \   \
+        //    4   5   6
+        //   /
+        //  7
+        // Target Sum = 15 (No root-to-leaf path sums to 15)
+        // Paths: 1->2->4->7=14, 1->2->5=8, 1->3->6=10
 
-        A.left = B;
-        A.right = C;
-        B.left = D;
-        B.right = E;
-        D.left = H;
-        E.left = F;
-        E.right = G;
-        H.left = I;
-        G.right = J;
+        const n1 = new Node(1, p);
+        const n2 = new Node(2, p);
+        const n3 = new Node(3, p);
+        const n4 = new Node(4, p);
+        const n5 = new Node(5, p);
+        const n6 = new Node(6, p);
+        const n7 = new Node(7, p);
 
-        nodes = [A, B, C, D, E, F, G, H, I, J];
-        root = A;
+        n1.left = n2;
+        n1.right = n3;
+        n2.left = n4;
+        n2.right = n5;
+        n3.right = n6;
+        n4.left = n7;
+
+        nodes = [n1, n2, n3, n4, n5, n6, n7];
+        root = n1;
 
         const w = p.width;
         const h = p.height;
-        layoutTree(A, w / 2, h * 0.10, w * 0.22, h * 0.20);
+        layoutTree(n1, w / 2, h * 0.12, w * 0.22, h * 0.22);
 
         nodes.forEach((node) => {
           node.x = node.targetX;
@@ -277,7 +281,9 @@ const DBT_EX2 = () => {
         });
 
         dfsSteps = [];
-        precomputeSteps(root);
+        foundPath = false;
+        successPathNodes = [];
+        precomputeSteps(root, 0, []);
       };
 
       p.setup = () => {
@@ -296,7 +302,7 @@ const DBT_EX2 = () => {
         updateNodeStates(p);
         drawEdges(p);
         drawNodes(p);
-        drawDiameterInfo(p);
+        drawTargetInfo(p);
 
         if (running && !paused && !computeComplete && p.frameCount % 60 === 0) {
           executeStep();
@@ -305,8 +311,8 @@ const DBT_EX2 = () => {
 
       const updateNodeStates = (p) => {
         for (let node of nodes) {
-          if (node.isOnDiameterPath) {
-            node.targetColor = p.color(colorsRef.current.diameter);
+          if (node.isOnPath) {
+            node.targetColor = p.color(colorsRef.current.pathFound);
             node.targetScale = 1.15;
           } else if (node.isCurrent) {
             node.targetColor = p.color(colorsRef.current.warning);
@@ -333,9 +339,9 @@ const DBT_EX2 = () => {
           if (node.right) p.line(node.x, node.y, node.right.x, node.right.y);
         }
 
-        for (const edge of diameterEdges) {
+        for (const edge of pathEdges) {
           p.push();
-          p.stroke(p.color(colorsRef.current.diameter));
+          p.stroke(p.color(colorsRef.current.pathFound));
           p.strokeWeight(4);
           p.drawingContext.setLineDash([8, 6]);
           p.line(edge.from.x, edge.from.y, edge.to.x, edge.to.y);
@@ -349,7 +355,7 @@ const DBT_EX2 = () => {
           let arrowSize = 10;
           p.translate(midPoint.x, midPoint.y);
           p.rotate(angle);
-          p.fill(p.color(colorsRef.current.diameter));
+          p.fill(p.color(colorsRef.current.pathFound));
           p.noStroke();
           p.triangle(0, 0, -arrowSize * 1.5, -arrowSize * 0.7, -arrowSize * 1.5, arrowSize * 0.7);
           p.pop();
@@ -371,20 +377,20 @@ const DBT_EX2 = () => {
           p.textSize(16);
           p.text(node.value, node.x, node.y);
 
-          if (node.heightValue !== null) {
+          if (node.runningSum !== null) {
             p.textSize(11);
-            p.fill(colorsRef.current.heightColor);
-            p.text(`h=${node.heightValue}`, node.x, node.y + 32);
+            p.fill(colorsRef.current.currentPath);
+            p.text(`Σ=${node.runningSum}`, node.x, node.y + 42);
           }
         }
       };
 
-      const drawDiameterInfo = (p) => {
+      const drawTargetInfo = (p) => {
         p.textAlign(p.RIGHT, p.TOP);
         p.textSize(14);
         p.noStroke();
         p.fill(colorsRef.current.text.primary);
-        p.text(`Diameter: ${currentDiameter}`, p.width - 40, 15);
+        p.text(`Target Sum: ${targetSum}`, p.width - 50, 15);
       };
 
       const executeStep = () => {
@@ -393,11 +399,18 @@ const DBT_EX2 = () => {
           running = false;
           setIsPlaying(false);
           nodes.forEach((n) => (n.isCurrent = false));
-          findAndHighlightDiameterPath();
-          playSound("success");
-          setStatusText(`Complete! Diameter = ${currentDiameter}`);
-          setStepList((prev) => [...prev, `Step ${stepNumber++}: Algorithm complete. Diameter = ${currentDiameter}`]);
-          setDiameterValue(currentDiameter);
+
+          if (foundPath) {
+            highlightSuccessPath();
+            playSound("success");
+            setResultText(`✅ Path Found! Sum = ${targetSum}`);
+            setStatusText(`Complete! Path found with sum = ${targetSum}`);
+          } else {
+            playSound("fail");
+            setResultText(`❌ No Path Found for sum = ${targetSum}`);
+            setStatusText(`Complete! No path found with sum = ${targetSum}`);
+          }
+          setStepList((prev) => [...prev, `Step ${stepNumber++}: Algorithm complete.`]);
           return;
         }
 
@@ -407,15 +420,14 @@ const DBT_EX2 = () => {
             visited: n.visited,
             processed: n.processed,
             isCurrent: n.isCurrent,
-            isOnDiameterPath: n.isOnDiameterPath,
-            heightValue: n.heightValue,
+            isOnPath: n.isOnPath,
+            runningSum: n.runningSum,
             color: { levels: n.color.levels },
             targetColor: { levels: n.targetColor.levels }
           })),
           stepIndex: currentStepIndex,
           stepNumber,
-          currentDiameter,
-          diameterEdges: [...diameterEdges]
+          pathEdges: [...pathEdges]
         });
 
         currentStepIndex++;
@@ -427,74 +439,54 @@ const DBT_EX2 = () => {
         if (step.type === "visit") {
           node.visited = true;
           node.isCurrent = true;
-          setStatusText(`Visiting: ${step.nodeValue}`);
+          node.runningSum = step.runningSum;
+          setStatusText(`Visiting: ${step.nodeValue}, sum = ${step.runningSum}`);
           setStepList((prev) => [...prev, `Step ${stepNumber++}: ${step.message}`]);
           playSound("step");
-        } else if (step.type === "return_left" || step.type === "return_right") {
-          node.isCurrent = true;
-          setStatusText(step.message);
-          setStepList((prev) => [...prev, `Step ${stepNumber++}: ${step.message}`]);
-          playSound("step");
-        } else if (step.type === "compute") {
+        } else if (step.type === "leaf_check") {
           node.isCurrent = true;
           node.processed = true;
-          node.heightValue = step.nodeHeight;
-          if (step.localDiameter > currentDiameter) {
-            currentDiameter = step.localDiameter;
-            setDiameterValue(currentDiameter);
+          if (step.isMatch) {
+            playSound("success");
+          } else {
+            playSound("step");
           }
+          setStatusText(step.message);
+          setStepList((prev) => [...prev, `Step ${stepNumber++}: ${step.message}`]);
+        } else if (step.type === "backtrack") {
+          node.isCurrent = true;
           setStatusText(step.message);
           setStepList((prev) => [...prev, `Step ${stepNumber++}: ${step.message}`]);
           playSound("step");
         }
       };
 
-      const findAndHighlightDiameterPath = () => {
-        let maxDiam = 0;
-        let maxNode = null;
+      const highlightSuccessPath = () => {
+        if (successPathNodes.length === 0) return;
 
-        function getHeight(node) {
-          if (!node) return 0;
-          return node.heightValue || 0;
-        }
+        const pathNodeRefs = [];
 
-        for (let node of nodes) {
-          const lh = node.left ? getHeight(node.left) : 0;
-          const rh = node.right ? getHeight(node.right) : 0;
-          if (lh + rh >= maxDiam) {
-            maxDiam = lh + rh;
-            maxNode = node;
-          }
-        }
+        const findPath = (node, values, idx) => {
+          if (!node || idx >= values.length) return false;
+          if (node.value !== values[idx]) return false;
 
-        if (maxNode) {
-          maxNode.isOnDiameterPath = true;
+          pathNodeRefs.push(node);
+          node.isOnPath = true;
 
-          const traceDown = (n) => {
-            if (!n || n.heightValue <= 1) return;
-            const lh = n.left && n.left.heightValue !== null ? n.left.heightValue : 0;
-            const rh = n.right && n.right.heightValue !== null ? n.right.heightValue : 0;
-            if (lh >= rh && n.left) {
-              diameterEdges.push({ from: n, to: n.left });
-              n.left.isOnDiameterPath = true;
-              traceDown(n.left);
-            } else if (n.right) {
-              diameterEdges.push({ from: n, to: n.right });
-              n.right.isOnDiameterPath = true;
-              traceDown(n.right);
-            }
-          };
+          if (idx === values.length - 1) return true;
 
-          if (maxNode.left) {
-            diameterEdges.push({ from: maxNode, to: maxNode.left });
-            maxNode.left.isOnDiameterPath = true;
-            traceDown(maxNode.left);
-          }
-          if (maxNode.right) {
-            diameterEdges.push({ from: maxNode, to: maxNode.right });
-            maxNode.right.isOnDiameterPath = true;
-            traceDown(maxNode.right);
-          }
+          if (findPath(node.left, values, idx + 1)) return true;
+          if (findPath(node.right, values, idx + 1)) return true;
+
+          pathNodeRefs.pop();
+          node.isOnPath = false;
+          return false;
+        };
+
+        findPath(root, successPathNodes, 0);
+
+        for (let i = 0; i < pathNodeRefs.length - 1; i++) {
+          pathEdges.push({ from: pathNodeRefs[i], to: pathNodeRefs[i + 1] });
         }
       };
 
@@ -502,12 +494,11 @@ const DBT_EX2 = () => {
         createTree(p);
         stepNumber = 1;
         history = [];
-        diameterEdges = [];
+        pathEdges = [];
         currentStepIndex = -1;
-        currentDiameter = 0;
         setStepList([]);
         setStatusText("Status: Ready");
-        setDiameterValue(0);
+        setResultText("");
         running = false;
         paused = true;
         computeComplete = false;
@@ -544,17 +535,15 @@ const DBT_EX2 = () => {
           node.visited = prev.nodes[i].visited;
           node.processed = prev.nodes[i].processed;
           node.isCurrent = prev.nodes[i].isCurrent;
-          node.isOnDiameterPath = prev.nodes[i].isOnDiameterPath;
-          node.heightValue = prev.nodes[i].heightValue;
+          node.isOnPath = prev.nodes[i].isOnPath;
+          node.runningSum = prev.nodes[i].runningSum;
           node.color = p.color(prev.nodes[i].color.levels);
           node.targetColor = p.color(prev.nodes[i].targetColor.levels);
         });
         currentStepIndex = prev.stepIndex;
         stepNumber = prev.stepNumber;
-        currentDiameter = prev.currentDiameter;
-        diameterEdges = prev.diameterEdges;
+        pathEdges = prev.pathEdges;
         computeComplete = false;
-        setDiameterValue(currentDiameter);
         setStepList((prevList) => prevList.slice(0, -1));
         const lastStatus = history.length > 0 ? "Stepping back..." : "Status: Ready";
         setStatusText(lastStatus);
@@ -580,10 +569,10 @@ const DBT_EX2 = () => {
     <Box sx={styles.container}>
       <Box sx={{ mb: 2, textAlign: "center" }}>
         <Typography variant="h5" gutterBottom sx={{ color: colors.text.primary, fontWeight: 700 }}>
-          Example 2: Diameter Not Through Root
+          Example 2: Path Sum — No Valid Path (Target = 15)
         </Typography>
-        <Typography variant="h6" sx={{ color: colors.diameter, fontWeight: 600 }}>
-          Current Diameter: {diameterValue}
+        <Typography variant="h6" sx={{ color: resultText.includes("✅") ? colors.pathFound : colors.pathNotFound, fontWeight: 600 }}>
+          {resultText || "Target Sum: 15"}
         </Typography>
       </Box>
 
@@ -671,7 +660,7 @@ const DBT_EX2 = () => {
           <LegendItem color={colors.warning} text="Current" textColor={colors.text.primary} />
           <LegendItem color={colors.secondary} text="Visiting" textColor={colors.text.primary} />
           <LegendItem color={colors.success} text="Processed" textColor={colors.text.primary} />
-          <LegendItem color={colors.diameter} text="Diameter Path" textColor={colors.text.primary} />
+          <LegendItem color={colors.pathFound} text="Path Found" textColor={colors.text.primary} />
           <LegendItem color={colors.info} text="Not Visited" textColor={colors.text.primary} />
         </Stack>
       </Box>
@@ -752,4 +741,4 @@ const LegendItem = ({ color, text, textColor }) => (
   </Stack>
 );
 
-export default DBT_EX2;
+export default PS_EX2;
