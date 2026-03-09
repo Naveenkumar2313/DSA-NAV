@@ -48,7 +48,7 @@ const routes = [
       { path: "/dashboard/default", element: <Home />, auth: authRoles.admin },
       // e-chart route
       { path: "/charts/echarts", element: <Demo />, auth: authRoles.editor },
-      // material routes (reduced to 5 pages)
+      // material routes
       { path: "/components/arrays/Bsearch", element: <BNS_template /> },
       { path: "/components/arrays/Lsearch", element: <LS_template /> },
       { path: "/components/arrays/BBS", element: <BBS_template /> },
