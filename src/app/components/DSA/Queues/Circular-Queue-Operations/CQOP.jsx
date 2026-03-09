@@ -86,6 +86,7 @@ const ELEMENT_HEIGHT = 55;
 const fadeIn = keyframes`from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); }`;
 const fadeOut = keyframes`from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.5); }`;
 
+// --- Main Component ---
 const CQOP = ({ showSnackbar }) => {
   const theme = useTheme();
   const colors = getSimulationColors(theme);
