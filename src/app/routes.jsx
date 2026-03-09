@@ -34,6 +34,7 @@ import DBT_template from "./components/DSA/Trees/Diameter_of_a_Binary_Tree/DBT_t
 import PS_template from "./components/DSA/Trees/Path_Sum/PS_template";
 import BBT_template from "./components/DSA/Trees/Balanced_Binary_Tree/BBT_template";
 import TP_template from "./components/DSA/Arrays/Two_pointer/TP_template";
+import SortStack_template from "./components/DSA/Stacks/Sort_stack/SortStack_template";
 
 const routes = [
   { path: "/", element: <Navigate to="dashboard/default" /> },
@@ -73,7 +74,8 @@ const routes = [
       { path: "/components/linked-list/reverse", element: <RLL_template /> },
       { path: "/components/trees/Diameter", element: <DBT_template /> },
       { path: "/components/trees/PathSum", element: <PS_template /> },
-      { path: "/components/trees/BalancedBinaryTree", element: <BBT_template /> }
+      { path: "/components/trees/BalancedBinaryTree", element: <BBT_template /> },
+      { path: "/components/Stacks/sort_stack", element: <SortStack_template /> }
     ]
   },
 

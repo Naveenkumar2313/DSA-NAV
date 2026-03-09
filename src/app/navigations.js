@@ -29,7 +29,8 @@ const navigations = [
     children: [
       { name: "Stack Operations", path: "/components/Stacks/Operations" },
       { name: "Infix to Postfix", path: "/components/Stacks/INPO" },
-      { name: "Valid Parenthesis", path: "/components/Stacks/VP" }
+      { name: "Valid Parenthesis", path: "/components/Stacks/VP" },
+      { name: "Sort a stack", path: "/components/Stacks/sort_stack" }
     ]
   },
   {
