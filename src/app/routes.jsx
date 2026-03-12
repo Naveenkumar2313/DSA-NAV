@@ -75,7 +75,7 @@ const routes = [
       { path: "/components/trees/Diameter", element: <DBT_template /> },
       { path: "/components/trees/PathSum", element: <PS_template /> },
       { path: "/components/trees/BalancedBinaryTree", element: <BBT_template /> },
-      { path: "/components/Stacks/sort_stack", element: <SortStack_template /> }
+      { path: "/components/Stacks/sort_stack", element: <SortStack_template /> },
     ]
   },
 
